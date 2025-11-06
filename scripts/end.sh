@@ -9,6 +9,14 @@ SESSION_FILE="${STATE_DIR}/session.env"
 LOG_FILE="${STATE_DIR}/end.log"
 readonly SCRIPT_DIR PROJECT_ROOT STATE_DIR SESSION_FILE LOG_FILE
 
+request_privileged_access() {
+  if [[ "${EUID}" -ne 0 ]]; then
+    require_command sudo
+    echo "Elevated privileges required to tear down WireGuard. You'll be prompted for your password."
+    sudo -v
+  fi
+}
+
 usage() {
   cat <<'EOF'
 Usage: end.sh [--dry-run]
@@ -59,8 +67,7 @@ bring_interface_down() {
   local config_path="${SESSION[CONFIG_PATH]}"
   local cmd=("wg-quick" "down" "${config_path}")
   if [[ "${EUID}" -ne 0 ]]; then
-    require_command sudo
-    cmd=("sudo" "-n" "wg-quick" "down" "${config_path}")
+    cmd=("sudo" "wg-quick" "down" "${config_path}")
   fi
   "${cmd[@]}" | tee -a "${LOG_FILE}"
 }
@@ -99,6 +106,7 @@ main() {
     exit 0
   fi
 
+  request_privileged_access
   bring_interface_down
   cleanup_files
   echo "CrackedVPN session ended."

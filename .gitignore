@@ -1,1 +1,16 @@
+# Local notes
 txt.txt
+
+# Runtime artifacts
+.runtime/
+*.log
+
+# Generated configs / secrets
+templates/*.conf
+templates/*.key
+templates/*.psk
+*.env
+
+# AGENTS
+AGENTS.md
+AGENTS_SPECIFICATIONS.md

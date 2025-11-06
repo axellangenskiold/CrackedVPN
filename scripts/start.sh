@@ -11,6 +11,14 @@ CONFIG_FILE="${STATE_DIR}/wg0-client.conf"
 LOG_FILE="${STATE_DIR}/start.log"
 readonly SCRIPT_DIR PROJECT_ROOT STATE_DIR DEFAULT_COUNTRY SESSION_FILE CONFIG_FILE LOG_FILE
 
+request_privileged_access() {
+  if [[ "${EUID}" -ne 0 ]]; then
+    require_command sudo
+    echo "Elevated privileges required to configure WireGuard. You'll be prompted for your password."
+    sudo -v
+  fi
+}
+
 require_command() {
   local cmd="$1"
   if ! command -v "${cmd}" >/dev/null 2>&1; then
@@ -144,8 +152,7 @@ ensure_no_active_session() {
 bring_interface_up() {
   local cmd=("wg-quick" "up" "${CONFIG_FILE}")
   if [[ "${EUID}" -ne 0 ]]; then
-    require_command sudo
-    cmd=("sudo" "-n" "wg-quick" "up" "${CONFIG_FILE}")
+    cmd=("sudo" "wg-quick" "up" "${CONFIG_FILE}")
   fi
 
   "${cmd[@]}" | tee -a "${LOG_FILE}"
@@ -201,6 +208,7 @@ main() {
     exit 0
   fi
 
+  request_privileged_access
   bring_interface_up
   write_session_file "${selected_country}"
 

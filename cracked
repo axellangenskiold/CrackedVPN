@@ -2,7 +2,18 @@
 
 set -euo pipefail
 
-SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+resolve_script_dir() {
+  local source="${BASH_SOURCE[0]}"
+  while [[ -h "${source}" ]]; do
+    local dir
+    dir="$(cd -P "$(dirname "${source}")" && pwd)"
+    source="$(readlink "${source}")"
+    [[ "${source}" != /* ]] && source="${dir}/${source}"
+  done
+  cd -P "$(dirname "${source}")" && pwd
+}
+
+SCRIPT_PATH="$(resolve_script_dir)"
 SCRIPTS_DIR="${SCRIPT_PATH}/scripts"
 STATE_DIR="${SCRIPT_PATH}/.runtime"
 readonly SCRIPT_PATH SCRIPTS_DIR STATE_DIR

@@ -58,11 +58,11 @@ Why This Stack Was Chosen
 
 ⸻
 
-Expected Workflow (When Done) 1. User clones the CrackedVPN repo locally 2. User runs cracked_vpn setcountry <country> to set the target country (loads local WireGuard client config that corresponds to the server) 3. User runs cracked_vpn start to begin the WireGuard tunnel from client side 4. All traffic is tunneled:
+Expected Workflow (When Done) 1. User clones the CrackedVPN repo locally 2. User runs cracked setcountry <country> to set the target country (loads local WireGuard client config that corresponds to the server) 3. User runs cracked start to begin the WireGuard tunnel from client side 4. All traffic is tunneled:
 • Through the WireGuard interface
 • Through the remote VPS
 • Through Tor
-• To the final destination on the internet 5. User can run cracked_vpn status to confirm their current IP, country, and tunnel state 6. User can run cracked_vpn end to close the tunnel
+• To the final destination on the internet 5. User can run cracked status to confirm their current IP, country, and tunnel state 6. User can run cracked end to close the tunnel
 
 ⸻
 
