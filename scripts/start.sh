@@ -6,10 +6,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 STATE_DIR="${PROJECT_ROOT}/.runtime"
 DEFAULT_COUNTRY="local"
+CONFIG_FILENAME="wg0-client.conf"
+CONFIG_FILE="${STATE_DIR}/${CONFIG_FILENAME}"
+INTERFACE_NAME="${CONFIG_FILENAME%.conf}"
 SESSION_FILE="${STATE_DIR}/session.env"
-CONFIG_FILE="${STATE_DIR}/wg0-client.conf"
 LOG_FILE="${STATE_DIR}/start.log"
-readonly SCRIPT_DIR PROJECT_ROOT STATE_DIR DEFAULT_COUNTRY SESSION_FILE CONFIG_FILE LOG_FILE
+readonly SCRIPT_DIR PROJECT_ROOT STATE_DIR DEFAULT_COUNTRY CONFIG_FILENAME CONFIG_FILE INTERFACE_NAME SESSION_FILE LOG_FILE
 
 request_privileged_access() {
   if [[ "${EUID}" -ne 0 ]]; then
@@ -91,7 +93,7 @@ read_current_country() {
 write_session_file() {
   cat >"${SESSION_FILE}" <<EOF
 COUNTRY=${1}
-INTERFACE=wg0
+INTERFACE=${INTERFACE_NAME}
 CONFIG_PATH=${CONFIG_FILE}
 TEMPLATE=wg0_${1}.conf
 CREATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -142,8 +144,8 @@ ensure_no_active_session() {
     fi
   fi
   if command -v wg >/dev/null 2>&1; then
-    if wg show wg0 >/dev/null 2>&1; then
-      echo "error: interface wg0 already active. Run 'cracked end' before starting a new session." >&2
+    if wg show "${INTERFACE_NAME}" >/dev/null 2>&1; then
+      echo "error: interface ${INTERFACE_NAME} already active. Run 'cracked end' before starting a new session." >&2
       exit 1
     fi
   fi

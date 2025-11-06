@@ -6,7 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 STATE_DIR="${PROJECT_ROOT}/.runtime"
 SESSION_FILE="${STATE_DIR}/session.env"
-readonly SCRIPT_DIR PROJECT_ROOT STATE_DIR SESSION_FILE
+DEFAULT_COUNTRY="local"
+DEFAULT_INTERFACE="wg0-client"
+readonly SCRIPT_DIR PROJECT_ROOT STATE_DIR SESSION_FILE DEFAULT_COUNTRY DEFAULT_INTERFACE
 
 usage() {
   cat <<'EOF'
@@ -23,11 +25,30 @@ Options:
 EOF
 }
 
-load_session_country() {
+SESSION_COUNTRY="${DEFAULT_COUNTRY}"
+SESSION_INTERFACE="${DEFAULT_INTERFACE}"
+
+load_session_metadata() {
   if [[ -f "${STATE_DIR}/country" ]]; then
-    cat "${STATE_DIR}/country"
-  else
-    printf 'local\n'
+    SESSION_COUNTRY="$(cat "${STATE_DIR}/country")"
+  fi
+
+  if [[ -f "${SESSION_FILE}" ]]; then
+    declare -A SESSION=()
+    while IFS='=' read -r key value; do
+      key="${key%%#*}"
+      key="$(echo -n "${key}" | tr -d '[:space:]')"
+      if [[ -z "${key}" ]]; then
+        continue
+      fi
+      value="${value%%#*}"
+      value="${value%"${value##*[![:space:]]}"}"
+      value="${value#"${value%%[![:space:]]*}"}"
+      SESSION["${key}"]="${value}"
+    done <"${SESSION_FILE}"
+
+    SESSION_COUNTRY="${SESSION[COUNTRY]:-${SESSION_COUNTRY}}"
+    SESSION_INTERFACE="${SESSION[INTERFACE]:-${SESSION_INTERFACE}}"
   fi
 }
 
@@ -39,7 +60,7 @@ collect_wireguard() {
     return
   fi
 
-  if ! wg show wg0 >/dev/null 2>&1; then
+  if ! wg show "${SESSION_INTERFACE}" >/dev/null 2>&1; then
     WG_ACTIVE="false"
     WG_INTERFACE=""
     WG_HANDSHAKE=""
@@ -47,8 +68,8 @@ collect_wireguard() {
   fi
 
   WG_ACTIVE="true"
-  WG_INTERFACE="wg0"
-  WG_HANDSHAKE="$(wg show wg0 latest-handshakes 2>/dev/null | awk '{print $2}' | head -n1)"
+  WG_INTERFACE="${SESSION_INTERFACE}"
+  WG_HANDSHAKE="$(wg show "${SESSION_INTERFACE}" latest-handshakes 2>/dev/null | awk '{print $2}' | head -n1)"
 }
 
 fetch_external_ip() {
@@ -99,7 +120,7 @@ print_json() {
   printf '"direct_ip":"%s",' "$(escape_json "${DIRECT_IP}")"
   printf '"tor_ip":"%s"' "$(escape_json "${TOR_IP}")"
   printf '},'
-  printf '"country":"%s"' "$(escape_json "${COUNTRY}")"
+  printf '"country":"%s"' "$(escape_json "${SESSION_COUNTRY}")"
   printf '}\n'
 }
 
@@ -111,7 +132,7 @@ print_human() {
   fi
   echo "Direct IP: ${DIRECT_IP}"
   echo "Tor IP: ${TOR_IP}"
-  echo "Selected country: ${COUNTRY}"
+  echo "Selected country: ${SESSION_COUNTRY}"
 }
 
 main() {
@@ -134,7 +155,7 @@ main() {
     esac
   done
 
-  COUNTRY="$(load_session_country)"
+  load_session_metadata
   collect_wireguard
   fetch_external_ip
   fetch_tor_ip
