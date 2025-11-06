@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPTS_DIR="${SCRIPT_PATH}/scripts"
+STATE_DIR="${SCRIPT_PATH}/.runtime"
+readonly SCRIPT_PATH SCRIPTS_DIR STATE_DIR
+
+usage() {
+  cat <<'EOF'
+CrackedVPN CLI
+
+Usage:
+  cracked start [--country <name>] [--dry-run]
+  cracked end [--dry-run]
+  cracked setcountry <country>
+  cracked status [--json]
+  cracked help
+
+Commands:
+  start       Bootstrap a new VPN session using the active template
+  end         Tear down the running VPN session
+  setcountry  Select WireGuard/Tor exit template (default: local)
+  status      Show WireGuard, Tor, and IP state
+  help        Show this help message
+EOF
+}
+
+ensure_runtime_dir() {
+  mkdir -p "${STATE_DIR}"
+  chmod 700 "${STATE_DIR}"
+}
+
+require_command() {
+  local cmd="$1"
+  if ! command -v "${cmd}" >/dev/null 2>&1; then
+    echo "error: required command '${cmd}' not found in PATH" >&2
+    exit 1
+  fi
+}
+
+dispatch_start() {
+  ensure_runtime_dir
+  bash "${SCRIPTS_DIR}/start.sh" "$@"
+}
+
+dispatch_end() {
+  ensure_runtime_dir
+  bash "${SCRIPTS_DIR}/end.sh" "$@"
+}
+
+dispatch_setcountry() {
+  ensure_runtime_dir
+  bash "${SCRIPTS_DIR}/setcountry.sh" "$@"
+}
+
+dispatch_status() {
+  ensure_runtime_dir
+  bash "${SCRIPTS_DIR}/status.sh" "$@"
+}
+
+if [[ $# -lt 1 ]]; then
+  usage >&2
+  exit 1
+fi
+
+command="$1"
+shift || true
+
+case "${command}" in
+  start)
+    dispatch_start "$@"
+    ;;
+  end)
+    dispatch_end "$@"
+    ;;
+  setcountry)
+    dispatch_setcountry "$@"
+    ;;
+  status)
+    dispatch_status "$@"
+    ;;
+  help|--help|-h)
+    usage
+    ;;
+  *)
+    echo "error: unknown command '${command}'" >&2
+    usage >&2
+    exit 1
+    ;;
+esac

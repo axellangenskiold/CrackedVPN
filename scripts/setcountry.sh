@@ -6,14 +6,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TEMPLATE_DIR="${PROJECT_ROOT}/templates"
 STATE_DIR="${PROJECT_ROOT}/.runtime"
-readonly SCRIPT_DIR PROJECT_ROOT TEMPLATE_DIR STATE_DIR
+SELECTION_FILE="${STATE_DIR}/country"
+readonly SCRIPT_DIR PROJECT_ROOT TEMPLATE_DIR STATE_DIR SELECTION_FILE
 
 usage() {
   cat <<'EOF'
 Usage: setcountry.sh <country>
 
-Select the WireGuard template that should be expanded by start.sh.
-Templates live under templates/ and contain server-side stubs only.
+Select the WireGuard/Tor exit template that start.sh should consume.
+Templates live under templates/ and follow the KEY=VALUE schema.
 
 Arguments:
   <country>  Country key (e.g. local, us) matching templates/wg0_<country>.conf
@@ -25,6 +26,26 @@ ensure_runtime_dir() {
   chmod 700 "${STATE_DIR}"
 }
 
+validate_template() {
+  local path="$1"
+  if [[ ! -f "${path}" ]]; then
+    echo "error: template ${path} not found" >&2
+    exit 1
+  fi
+
+  local missing=()
+  for key in SERVER_PUBLIC_KEY SERVER_ENDPOINT ALLOWED_IPS CLIENT_ADDRESS; do
+    if ! grep -Eq "^[[:space:]]*${key}=" "${path}"; then
+      missing+=("${key}")
+    fi
+  done
+
+  if (( ${#missing[@]} > 0 )); then
+    echo "error: template ${path} missing keys: ${missing[*]}" >&2
+    exit 1
+  fi
+}
+
 if [[ $# -ne 1 ]]; then
   usage >&2
   exit 1
@@ -32,23 +53,11 @@ fi
 
 country="$1"
 template_path="${TEMPLATE_DIR}/wg0_${country}.conf"
-selection_file="${STATE_DIR}/country"
 
-main() {
-  ensure_runtime_dir
+ensure_runtime_dir
+validate_template "${template_path}"
 
-  if [[ ! -f "${template_path}" ]]; then
-    echo "error: template ${template_path} not found" >&2
-    exit 1
-  fi
+printf '%s\n' "${country}" >"${SELECTION_FILE}"
+chmod 600 "${SELECTION_FILE}"
 
-  echo "[todo] Validate template contents before selection"
-  echo "[todo] Record active template for start.sh to consume"
-  echo "[todo] Optionally render preview of server stub for debugging"
-
-  printf '%s\n' "${country}" > "${selection_file}"
-  chmod 600 "${selection_file}"
-  echo "Selected country '${country}'."
-}
-
-main "$@"
+echo "Selected country '${country}'. Template: ${template_path}"
