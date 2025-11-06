@@ -13,7 +13,7 @@ Features
 
 Quick Start
 -----------
-1. Follow the steps in `INSTALL.md`.
+1. Follow the steps in `INSTALL.md` (including running `./add_to_path.sh`).
 2. Select a template: `cracked setcountry local`.
 3. Launch: `cracked start`.
 4. Verify: `cracked status`.
