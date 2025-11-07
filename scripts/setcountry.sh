@@ -34,8 +34,23 @@ validate_template() {
   fi
 
   local missing=()
+  declare -A keys_seen=()
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line="${line%%#*}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    if [[ -z "${line}" ]]; then
+      continue
+    fi
+    IFS='=' read -r key value <<<"${line}"
+    key="$(echo -n "${key}" | tr -d '[:space:]')"
+    if [[ -n "${key}" ]]; then
+      keys_seen["${key}"]=1
+    fi
+  done <"${path}"
+
   for key in SERVER_PUBLIC_KEY SERVER_ENDPOINT ALLOWED_IPS CLIENT_ADDRESS; do
-    if ! grep -Eq "^[[:space:]]*${key}=" "${path}"; then
+    if [[ -z "${keys_seen[${key}]:-}" ]]; then
       missing+=("${key}")
     fi
   done

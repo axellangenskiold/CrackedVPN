@@ -58,15 +58,22 @@ load_template() {
   fi
 
   declare -gA TEMPLATE_DATA=()
-  while IFS='=' read -r raw_key raw_value; do
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    # Remove comments
+    line="${line%%#*}"
+    # Trim whitespace
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    if [[ -z "${line}" ]]; then
+      continue
+    fi
+    IFS='=' read -r raw_key raw_value <<<"${line}"
     # Strip whitespace and ignore comments/blank lines
-    raw_key="${raw_key%%#*}"
     raw_key="$(echo -n "${raw_key}" | tr -d '[:space:]')"
     if [[ -z "${raw_key}" ]]; then
       continue
     fi
     # Preserve value spacing but trim surrounding quotes/newlines
-    raw_value="${raw_value%%#*}"
     raw_value="${raw_value%"${raw_value##*[![:space:]]}"}"
     raw_value="${raw_value#"${raw_value%%[![:space:]]*}"}"
     raw_value="${raw_value%\"}"
