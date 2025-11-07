@@ -10,6 +10,20 @@ DEFAULT_COUNTRY="local"
 DEFAULT_INTERFACE="wg0-client"
 readonly SCRIPT_DIR PROJECT_ROOT STATE_DIR SESSION_FILE DEFAULT_COUNTRY DEFAULT_INTERFACE
 
+run_wg() {
+  if command -v wg >/dev/null 2>&1; then
+    if [[ "${EUID}" -eq 0 ]]; then
+      wg "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+      sudo wg "$@"
+    else
+      wg "$@"
+    fi
+  else
+    return 1
+  fi
+}
+
 usage() {
   cat <<'EOF'
 Usage: status.sh [--json]
@@ -60,7 +74,7 @@ collect_wireguard() {
     return
   fi
 
-  if ! wg show "${SESSION_INTERFACE}" >/dev/null 2>&1; then
+  if ! run_wg show "${SESSION_INTERFACE}" >/dev/null 2>&1; then
     WG_ACTIVE="false"
     WG_INTERFACE=""
     WG_HANDSHAKE=""
@@ -69,7 +83,7 @@ collect_wireguard() {
 
   WG_ACTIVE="true"
   WG_INTERFACE="${SESSION_INTERFACE}"
-  WG_HANDSHAKE="$(wg show "${SESSION_INTERFACE}" latest-handshakes 2>/dev/null | awk '{print $2}' | head -n1)"
+  WG_HANDSHAKE="$(run_wg show "${SESSION_INTERFACE}" latest-handshakes 2>/dev/null | awk '{print $2}' | head -n1)"
 }
 
 fetch_external_ip() {
