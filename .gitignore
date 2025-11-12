@@ -10,6 +10,8 @@ templates/*.conf
 templates/*.key
 templates/*.psk
 *.env
+client_private.key
+client_public.key
 *.keys
 
 # AGENTS
