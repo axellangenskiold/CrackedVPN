@@ -41,6 +41,7 @@ EOF
 
 SESSION_COUNTRY="${DEFAULT_COUNTRY}"
 SESSION_INTERFACE="${DEFAULT_INTERFACE}"
+SESSION_OS_INTERFACE=""
 
 load_session_metadata() {
   if [[ -f "${STATE_DIR}/country" ]]; then
@@ -63,6 +64,11 @@ load_session_metadata() {
 
     SESSION_COUNTRY="${SESSION[COUNTRY]:-${SESSION_COUNTRY}}"
     SESSION_INTERFACE="${SESSION[INTERFACE]:-${SESSION_INTERFACE}}"
+    SESSION_OS_INTERFACE="${SESSION[OS_INTERFACE]:-${SESSION_INTERFACE}}"
+  fi
+
+  if [[ -z "${SESSION_OS_INTERFACE}" ]]; then
+    SESSION_OS_INTERFACE="${SESSION_INTERFACE}"
   fi
 }
 
@@ -74,7 +80,7 @@ collect_wireguard() {
     return
   fi
 
-  if ! run_wg show "${SESSION_INTERFACE}" >/dev/null 2>&1; then
+  if ! run_wg show "${SESSION_OS_INTERFACE}" >/dev/null 2>&1; then
     WG_ACTIVE="false"
     WG_INTERFACE=""
     WG_HANDSHAKE=""
@@ -82,8 +88,8 @@ collect_wireguard() {
   fi
 
   WG_ACTIVE="true"
-  WG_INTERFACE="${SESSION_INTERFACE}"
-  WG_HANDSHAKE="$(run_wg show "${SESSION_INTERFACE}" latest-handshakes 2>/dev/null | awk '{print $2}' | head -n1)"
+  WG_INTERFACE="${SESSION_OS_INTERFACE}"
+  WG_HANDSHAKE="$(run_wg show "${SESSION_OS_INTERFACE}" latest-handshakes 2>/dev/null | awk '{print $2}' | head -n1)"
 }
 
 fetch_external_ip() {

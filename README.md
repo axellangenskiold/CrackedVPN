@@ -14,10 +14,11 @@ Features
 Quick Start
 -----------
 1. Follow the steps in `INSTALL.md` (including running `./add_to_path.sh`).
-2. Select a template: `cracked setcountry local`.
-3. Launch: `cracked start`.
-4. Verify: `cracked status`.
-5. Stop: `cracked end`.
+2. Generate a client key pair once (`wg genkey | tee client.key | wg pubkey > client.pub`) and embed the private key in your template so the server can trust the fixed public key.
+3. Select a template: `cracked setcountry local`.
+4. Launch: `cracked start`.
+5. Verify: `cracked status`.
+6. Stop: `cracked end`.
 
 Security Posture
 ----------------

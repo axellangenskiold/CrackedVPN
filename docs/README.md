@@ -10,7 +10,7 @@
 ## Workflow
 
 1. `cracked setcountry <key>` writes `.runtime/country`.
-2. `cracked start` loads the template, generates keys, writes a transient config under `.runtime/`, and calls `wg-quick up`. Session metadata goes to `.runtime/session.env`.
+2. `cracked start` loads the template, hydrates client keys (static `CLIENT_PRIVATE_KEY` if provided, otherwise generates a fresh pair), writes a transient config under `.runtime/`, and calls `wg-quick up`. Session metadata goes to `.runtime/session.env`.
 3. `cracked status` reads `.runtime/country`, inspects `wg`, and performs IP checks.
 4. `cracked end` reads `.runtime/session.env`, calls `wg-quick down`, and wipes transient files.
 

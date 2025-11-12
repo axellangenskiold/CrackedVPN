@@ -98,24 +98,41 @@ read_current_country() {
 }
 
 write_session_file() {
+  local country="$1"
+  local os_interface="$2"
   cat >"${SESSION_FILE}" <<EOF
-COUNTRY=${1}
+COUNTRY=${country}
 INTERFACE=${INTERFACE_NAME}
+OS_INTERFACE=${os_interface}
 CONFIG_PATH=${CONFIG_FILE}
-TEMPLATE=wg0_${1}.conf
+TEMPLATE=wg0_${country}.conf
 CREATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 EOF
   chmod 600 "${SESSION_FILE}"
 }
 
 generate_keys() {
-  require_command wg
   local private_key public_key
   private_key="$(wg genkey)"
   public_key="$(printf '%s' "${private_key}" | wg pubkey)"
   CLIENT_PRIVATE_KEY="${private_key}"
   CLIENT_PUBLIC_KEY="${public_key}"
   export CLIENT_PRIVATE_KEY CLIENT_PUBLIC_KEY
+}
+
+setup_client_keys() {
+  require_command wg
+  if [[ -n "${TEMPLATE_DATA[CLIENT_PRIVATE_KEY]:-}" ]]; then
+    CLIENT_PRIVATE_KEY="$(echo -n "${TEMPLATE_DATA[CLIENT_PRIVATE_KEY]}" | tr -d '[:space:]')"
+    if [[ -z "${CLIENT_PRIVATE_KEY}" ]]; then
+      echo "error: CLIENT_PRIVATE_KEY provided but empty in template" >&2
+      exit 1
+    fi
+    CLIENT_PUBLIC_KEY="$(printf '%s' "${CLIENT_PRIVATE_KEY}" | wg pubkey)"
+    export CLIENT_PRIVATE_KEY CLIENT_PUBLIC_KEY
+  else
+    generate_keys
+  fi
 }
 
 write_config() {
@@ -167,6 +184,15 @@ bring_interface_up() {
   "${cmd[@]}" | tee -a "${LOG_FILE}"
 }
 
+resolve_os_interface_name() {
+  local name_file="/var/run/wireguard/${INTERFACE_NAME}.name"
+  if [[ -f "${name_file}" ]]; then
+    tr -d '[:space:]' < "${name_file}"
+  else
+    printf '%s\n' "${INTERFACE_NAME}"
+  fi
+}
+
 main() {
   local country_override=""
   local dry_run="false"
@@ -207,7 +233,7 @@ main() {
   selected_country="${country_override:-$(read_current_country)}"
 
   load_template "${selected_country}"
-  generate_keys
+  setup_client_keys
   write_config
 
   if [[ "${dry_run}" == "true" ]]; then
@@ -219,7 +245,9 @@ main() {
 
   request_privileged_access
   bring_interface_up
-  write_session_file "${selected_country}"
+  local os_interface
+  os_interface="$(resolve_os_interface_name)"
+  write_session_file "${selected_country}" "${os_interface}"
 
   echo "CrackedVPN session started for country '${selected_country}'."
   echo "Use 'cracked status' to confirm connectivity and 'cracked end' to stop."

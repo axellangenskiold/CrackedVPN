@@ -21,6 +21,11 @@
    cp templates/wg0_local.example templates/wg0_local.conf
    $EDITOR templates/wg0_local.conf
    ```
+   - Recommended: generate a persistent client key pair once and embed it in the template:
+     ```bash
+     wg genkey | tee client_private.key | wg pubkey > client_public.key
+     ```
+     Set `CLIENT_PRIVATE_KEY="<contents of client_private.key>"` in the template and use `client_public.key` in your server’s `[Peer]` block. (If omitted, CrackedVPN generates a fresh key each session.)
 6. (Optional) create additional templates (e.g., copy the example to `wg0_us.conf`) following the same format.
 7. Run `cracked setcountry local` to validate/select the template.
 8. Start the VPN with `cracked start`.
